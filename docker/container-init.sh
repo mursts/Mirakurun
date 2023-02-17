@@ -66,7 +66,7 @@ fi
 function start() {
   if [ "$DEBUG" != "true" ]; then
     export NODE_ENV=production
-    node -r source-map-support/register lib/server.js &
+    node -r source-map-support/register --max_old_space_size=2048 lib/server.js &
   else
     npm run debug &
   fi

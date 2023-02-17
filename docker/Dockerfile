@@ -38,13 +38,15 @@ RUN apt-get update && \
         pcscd \
         libpcsclite-dev \
         libccid \
-        #libdvbv5-dev \
+        libdvbv5-dev \
         pcsc-tools \
-        #dvb-tools \
+        dvb-tools \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=build /usr/local/lib/node_modules/mirakurun /app
 COPY --from=recpt /usr/local/bin/recpt1 /opt/bin/
+COPY --from=recpt /usr/local/bin/recpt1ctl /opt/bin/
+COPY --from=recpt /usr/local/bin/checksignal /opt/bin/
 CMD ["./docker/container-init.sh"]
 EXPOSE 40772 9229
