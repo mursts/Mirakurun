@@ -28,9 +28,11 @@ stages:
           NODE_VERSION_SPEC: '14.x'
         v16:
           NODE_VERSION_SPEC: '16.x'
+        v18:
+          NODE_VERSION_SPEC: '18.x'
       maxParallel: 3
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-20.04'
     steps:
     - checkout: self
       submodules: true
@@ -70,7 +72,7 @@ stages:
           PLATFORM: 'linux/arm64/v8'
       maxParallel: 3
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-20.04'
     steps:
     - checkout: self
       submodules: true
@@ -107,7 +109,7 @@ stages:
   jobs:
   - job: Manifest
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-20.04'
     steps:
     - task: Docker@2
       inputs:

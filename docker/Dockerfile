@@ -1,5 +1,5 @@
 ARG ARCH=
-FROM ${ARCH}node:16.14.0-buster AS build
+FROM --platform=$BUILDPLATFORM ${ARCH}node:18.15.0-buster AS build
 WORKDIR /app
 ENV DOCKER=YES NODE_ENV=production
 ADD . .
@@ -9,7 +9,6 @@ RUN apt-get update && \
     npm install --production=false && \
     npm run build && \
     npm install -g --unsafe-perm --production
-
 
 FROM ${ARCH}node:16.14.0-buster-slim AS recpt
 RUN apt-get update && \
@@ -25,7 +24,8 @@ RUN apt-get update && \
     make && \
     make install
 
-FROM ${ARCH}node:16.14.0-buster-slim
+FROM ${ARCH}node:18.15.0-buster-slim
+
 WORKDIR /app
 RUN apt-get update && \
     apt-get upgrade -y && \

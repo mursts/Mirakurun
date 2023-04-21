@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Bold** is the recommended. also, **Node.js** `^14.17.0 || ^16` needed.
+**Bold** is the recommended. also, **Node.js** `^14.17.0 || ^16 || ^18` needed.
 
 * [**Docker on Linux**](#docker-on-linux)
   * [Docker Engine](https://docs.docker.com/engine/install/) `>=18.06.0`
@@ -16,7 +16,7 @@
   * **Debian** / **Ubuntu Server** / CentOS / Gentoo
   * SystemV / OpenRC / **SystemD**
   * ⚠ Note: Desktop Environment / VM is not supported and unstable!
-* [Win32](#win32) (Experimental, Unstable, Not Recommended, Not Tested)
+* [Win32](#win32) (Experimental, Unstable, Not Recommended, Not Tested) **- DEPRECATED**
   * [winser](https://github.com/jfromaniello/winser) `>=1.0.3`
   * ⚠ Note: WSL / Linux VM is not supported!
 
@@ -168,14 +168,14 @@ $ cp /usr/local/bin/something-static /opt/mirakurun/opt/bin/
 
 * **via Package Manager** (recommended)
   * [Debian / Ubuntu](https://github.com/nodesource/distributions/blob/master/README.md#deb) (deb)
-    * `curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -`
+    * `curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -`
     * `sudo apt-get install -y nodejs`
   * [CentOS](https://github.com/nodesource/distributions/blob/master/README.md#rpm) (rpm)
-    * (root) `curl -sL https://rpm.nodesource.com/setup_16.x | bash -`
+    * (root) `curl -sL https://rpm.nodesource.com/setup_18.x | bash -`
   * [Gentoo](https://nodejs.org/en/download/package-manager/#gentoo)
     * `emerge nodejs`
 * [nave](https://github.com/isaacs/nave)
-  * `sudo /path/to/nave.sh usemain 16`
+  * `sudo /path/to/nave.sh usemain 18`
 
 ### Install / Update
 
@@ -251,7 +251,7 @@ mirakurun version
   * `mirakurun.stdout.log` - normal log
   * `mirakurun.stderr.log` - error log
 
-## Win32
+## Win32  **- DEPRECATED**
 
 **Note:**
 

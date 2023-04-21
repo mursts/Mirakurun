@@ -2,9 +2,19 @@
 
 see [Commit Logs](https://github.com/Chinachu/Mirakurun/commits/master) to check all.
 
-## 3.9.0 (2022-xx-xx)
+## 3.9.0 (2023-xx-xx)
 
 Performance improvements, fixes for memory leaks and bugs related to EPG processing, etc.
+
+**Note:** The experimental Win32 support has been deprecated for the following complex reasons, and it may be completely removed in the next minor version:
+- There are no maintainers for Win32
+- The current performance is not meeting the expected standards, and there is no prospect for improvement in the foreseeable future
+- Many users are using it for purposes not intended by the developers, causing a burden on development
+- As part of the project roadmap cleanup, resources are being focused on Linux support
+
+Originally, Mirakurun was developed for Linux, and it is essential to avoid compromising the quality of the Linux version for Win32 support. This has led to the current conclusion.
+However, developers who still require Win32 support can fork the project and maintain the necessary code themselves.
+Thank you for your understanding.
 
 ### Server Changes
 
@@ -52,7 +62,7 @@ Performance improvements, fixes for memory leaks and bugs related to EPG process
 
 ### Docker Changes
 
-- Update base image to `node:16.13.1-buster-slim`.
+- Update base image to `node:18.15.0-buster-slim`.
 - Fixed the exit signal handling properly.
 - When a `SIGHUP` is received in a container, only the node process can be restarted quickly.
 - Add startup script (it runs `/opt/bin/startup`) support.
@@ -63,6 +73,7 @@ Performance improvements, fixes for memory leaks and bugs related to EPG process
 
 ### Other Changes
 
+- **package**: Add engine support `node@18`.
 - **package**: Drop engine support `node@12`.
 - **package**: Update dependencies.
 - remove `colors` package for urgent security reasons.
