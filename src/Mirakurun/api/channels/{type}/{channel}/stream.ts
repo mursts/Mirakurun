@@ -15,15 +15,16 @@
 */
 import {Operation} from "express-openapi";
 import * as api from "../../../../api";
+import * as apid from "../../../../../../api";
+import { channelTypes } from "../../../../common";
 import _ from "../../../../_";
-import { ChannelType, ChannelTypes } from "../../../../common";
 
 export const parameters = [
     {
         in: "path",
         name: "type",
         type: "string",
-        enum: Object.keys(ChannelTypes),
+        enum: channelTypes,
         required: true
     },
     {
@@ -48,11 +49,20 @@ export const parameters = [
 ];
 
 export const get: Operation = (req, res) => {
-
-    const channel = _.channel.get(req.params.type as ChannelType, req.params.channel);
+    const channel = _.channel.get(req.params.type as apid.ChannelType, req.params.channel);
 
     if (channel === null) {
         api.responseError(res, 404);
+        return;
+    }
+
+    const userId = (req.ip || "unix") + ":" + (req.socket.remotePort || Date.now());
+
+    // HEAD request support
+    if (req.method === "HEAD") {
+        res.setHeader("Content-Type", "video/MP2T");
+        res.setHeader("X-Mirakurun-Tuner-User-ID", userId);
+        res.status(200).end();
         return;
     }
 
@@ -61,8 +71,6 @@ export const get: Operation = (req, res) => {
 
     (<any> res.socket)._writableState.highWaterMark = Math.max(res.writableHighWaterMark, 1024 * 1024 * 16);
     res.socket.setNoDelay(true);
-
-    const userId = (req.ip || "unix") + ":" + (req.socket.remotePort || Date.now());
 
     channel.getStream({
         id: userId,
@@ -108,4 +116,12 @@ get.apiDoc = {
             description: "Unexpected Error"
         }
     }
+};
+
+// HEAD request support
+export const head: Operation = (...args) => get(...args);
+
+head.apiDoc = {
+    ...get.apiDoc,
+    operationId: undefined
 };

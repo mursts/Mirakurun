@@ -18,19 +18,8 @@ import { spawn } from "child_process";
 import * as api from "../api";
 
 export const put: Operation = (req, res) => {
-
     if (process.env.pm_uptime) {
         const cmd = spawn("mirakurun", ["restart"], {
-            detached: true,
-            stdio: "ignore"
-        });
-        cmd.unref();
-
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        res.status(202);
-        res.end(JSON.stringify({ _cmd_pid: cmd.pid }));
-    } else if (process.env.USING_WINSER) {
-        const cmd = spawn("cmd", ["/c", "net stop mirakurun & sc start mirakurun"], {
             detached: true,
             stdio: "ignore"
         });

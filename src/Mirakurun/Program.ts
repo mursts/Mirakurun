@@ -17,22 +17,23 @@ import sift from "sift";
 import * as common from "./common";
 import * as log from "./log";
 import * as db from "./db";
+import * as apid from "../../api";
 import _ from "./_";
-import Event, { EventType } from "./Event";
+import Event from "./Event";
 import queue from "./queue";
 
 export function getProgramItemId(networkId: number, serviceId: number, eventId: number): number {
     return parseInt(`${networkId}${serviceId.toString(10).padStart(5, "0")}${eventId.toString(10).padStart(5, "0")}`, 10);
 }
 
-export default class Program {
-
+export class Program {
     private _itemMap = new Map<number, db.Program>();
-    private _saveTimerId: NodeJS.Timer;
-    private _emitTimerId: NodeJS.Timer;
+    private _itemMapDeleted = new Map<number, db.Program>();
+    private _saveTimerId: NodeJS.Timeout;
+    private _emitTimerId: NodeJS.Timeout;
     private _emitRunning = false;
-    private _emitPrograms = new Map<db.Program, EventType>();
-    private _programGCInterval = _.config.server.programGCInterval || 1000 * 60 * 60; // 1 hour
+    private _emitPrograms = new Map<db.Program, apid.EventType>();
+    private _programGCInterval = _.config?.server?.programGCInterval || 1000 * 60 * 60; // 1 hour
 
     constructor() {
         this._load();
@@ -45,10 +46,12 @@ export default class Program {
     }
 
     add(item: db.Program, firstAdd: boolean = false): void {
-
         if (this.exists(item.id)) {
             return;
         }
+
+        // purge logically deleted item
+        this._itemMapDeleted.delete(item.id);
 
         if (firstAdd === false) {
             this._findAndRemoveConflicts(item);
@@ -68,7 +71,22 @@ export default class Program {
     }
 
     set(id: number, props: Partial<db.Program>): void {
-        const item = this.get(id);
+        let item = this.get(id);
+        if (!item) {
+            // Recovers logically deleted item if that is exsts into the tempolally collection.
+            item = this._itemMapDeleted.get(id) || null;
+            if (item) {
+                this._itemMap.set(item.id, item);
+                this._itemMapDeleted.delete(item.id);
+                this._emitPrograms.set(item, "create");
+                this.save();
+
+                log.debug(
+                    "ProgramItem#%d (networkId=%d, serviceId=%d, eventId=%d) has recovered from the logically-deleted store",
+                    item.id, item.networkId, item.serviceId, item.eventId
+                );
+            }
+        }
         if (item && common.updateObject(item, props) === true) {
             if (props.startAt || props.duration) {
                 this._findAndRemoveConflicts(item);
@@ -78,9 +96,18 @@ export default class Program {
         }
     }
 
-    remove(id: number): void {
-        if (this._itemMap.delete(id)) {
-            this.save();
+    remove(id: number, logicallyDelete: boolean = false): void {
+        if (logicallyDelete) {
+            const item = this.get(id);
+            if (item) {
+                this._itemMapDeleted.set(item.id, item);
+                this._itemMap.delete(id);
+                this.save();
+            }
+        } else {
+            if (this._itemMap.delete(id)) {
+                this.save();
+            }
         }
     }
 
@@ -88,12 +115,15 @@ export default class Program {
         return this._itemMap.has(id);
     }
 
+    isLogicallyDeleted(id: number): boolean {
+        return this._itemMapDeleted.has(id);
+    }
+
     findByQuery(query: object): db.Program[] {
         return Array.from(this._itemMap.values()).filter(sift(query));
     }
 
     findByNetworkId(networkId: number): db.Program[] {
-
         const items = [];
 
         for (const item of this._itemMap.values()) {
@@ -106,7 +136,6 @@ export default class Program {
     }
 
     findByNetworkIdAndTime(networkId: number, time: number): db.Program[] {
-
         const items = [];
 
         for (const item of this._itemMap.values()) {
@@ -119,7 +148,6 @@ export default class Program {
     }
 
     findByNetworkIdAndReplace(networkId: number, programs: db.Program[]): void {
-
         let count = 0;
 
         for (const item of [...this._itemMap.values()].reverse()) {
@@ -145,18 +173,17 @@ export default class Program {
         clearTimeout(this._emitTimerId);
         this._emitTimerId = setTimeout(() => this._emit(), 1000);
         clearTimeout(this._saveTimerId);
-        this._saveTimerId = setTimeout(() => this._save(), 1000 * 10);
+        this._saveTimerId = setTimeout(() => this._save(), 1000 * 30);
     }
 
-    private _load(): void {
-
+    private async _load(): Promise<void> {
         log.debug("loading programs...");
 
         const now = Date.now();
         let dropped = false;
 
-        db.loadPrograms(_.configIntegrity.channels).forEach(item => {
-
+        const programs = await db.loadPrograms(_.configIntegrity.channels);
+        programs.forEach(item => {
             if (item.networkId === undefined) {
                 dropped = true;
                 return;
@@ -175,7 +202,6 @@ export default class Program {
     }
 
     private _findAndRemoveConflicts(added: db.Program): void {
-
         const addedEndAt = added.startAt + added.duration;
 
         for (const item of this._itemMap.values()) {
@@ -189,9 +215,9 @@ export default class Program {
                         (added.startAt <= item.startAt && item.startAt < addedEndAt) ||
                         (item.startAt <= added.startAt && added.startAt < itemEndAt)
                     ) &&
-                    (!item._pf || added._pf)
+                    (!(item._isPresent || item._isFollowing) || added._isPresent)
                 ) {
-                    this.remove(item.id);
+                    this.remove(item.id, true);
                     Event.emit("program", "remove", { id: item.id });
 
                     log.debug(
@@ -204,7 +230,6 @@ export default class Program {
     }
 
     private async _emit(): Promise<void> {
-
         if (this._emitRunning) {
             return;
         }
@@ -224,9 +249,9 @@ export default class Program {
     }
 
     private _save(): void {
-
         log.debug("saving programs...");
 
+        // TODO: Do we need to save/load logically deleted items?
         db.savePrograms(
             Array.from(this._itemMap.values()),
             _.configIntegrity.channels
@@ -234,11 +259,9 @@ export default class Program {
     }
 
     private _gc(): void {
-
         log.debug("Program GC has queued");
 
         queue.add(async () => {
-
             const shortExp = Date.now() - 1000 * 60 * 60 * 3; // 3 hour
             const longExp = Date.now() - 1000 * 60 * 60 * 24; // 24 hours
             const maximum = Date.now() + 1000 * 60 * 60 * 24 * 9; // 9 days
@@ -254,9 +277,22 @@ export default class Program {
                 }
             }
 
+            // Perform GC for the logically-deleted store
+            for (const item of this._itemMapDeleted.values()) {
+                if (
+                    (item.duration === 1 ? longExp : shortExp) > (item.startAt + item.duration) ||
+                    maximum < item.startAt
+                ) {
+                    ++count;
+                    this._itemMapDeleted.delete(item.id);
+                }
+            }
+
             setTimeout(this._gc.bind(this), this._programGCInterval);
 
             log.info("Program GC has finished and removed %d programs", count);
         });
     }
 }
+
+export default Program;

@@ -13,8 +13,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-import { Writable } from "stream";
+import rfdc from "rfdc";
 import ChannelItem from "./ChannelItem";
+import * as apid from "../../api";
 
 export interface User {
     readonly id: string;
@@ -45,18 +46,12 @@ export interface StreamInfo {
     };
 }
 
-export enum ChannelTypes {
-    "GR" = "GR",
-    "BS" = "BS",
-    "CS" = "CS",
-    "SKY" = "SKY"
-}
+export const channelTypes: apid.ChannelType[] = ["GR", "BS", "CS", "SKY"];
 
-export type ChannelType = keyof typeof ChannelTypes;
+export const deepClone = rfdc();
 
 export function updateObject<T, U>(target: T, input: U): boolean;
 export function updateObject<T extends any[], U extends any[]>(target: T, input: U): boolean {
-
     let updated = false;
 
     for (const k in input) {
@@ -80,7 +75,6 @@ export function updateObject<T extends any[], U extends any[]>(target: T, input:
 }
 
 function updateArray<T extends any[], U extends any[]>(target: T, input: U): boolean {
-
     const length = target.length;
 
     if (length !== input.length) {
@@ -117,7 +111,6 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function getTimeFromMJD(buffer: Uint8Array | Buffer): number {
-
     const mjd = (buffer[0] << 8) | buffer[1];
     const h = (buffer[2] >> 4) * 10 + (buffer[2] & 0x0F);
     const i = (buffer[3] >> 4) * 10 + (buffer[3] & 0x0F);
@@ -127,7 +120,6 @@ export function getTimeFromMJD(buffer: Uint8Array | Buffer): number {
 }
 
 export function getTimeFromBCD24(buffer: Uint8Array | Buffer): number {
-
     let time = ((buffer[0] >> 4) * 10 + (buffer[0] & 0x0F)) * 3600;
     time += ((buffer[1] >> 4) * 10 + (buffer[1] & 0x0F)) * 60;
     time += (buffer[2] >> 4) * 10 + (buffer[2] & 0x0F);

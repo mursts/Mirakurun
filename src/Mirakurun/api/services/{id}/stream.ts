@@ -41,11 +41,20 @@ export const parameters = [
 ];
 
 export const get: Operation = (req, res) => {
-
     const service = _.service.get(req.params.id as any as number);
 
     if (service === null || service === undefined) {
         api.responseError(res, 404);
+        return;
+    }
+
+    const userId = (req.ip || "unix") + ":" + (req.socket.remotePort || Date.now());
+
+    // HEAD request support
+    if (req.method === "HEAD") {
+        res.setHeader("Content-Type", "video/MP2T");
+        res.setHeader("X-Mirakurun-Tuner-User-ID", userId);
+        res.status(200).end();
         return;
     }
 
@@ -54,8 +63,6 @@ export const get: Operation = (req, res) => {
 
     (<any> res.socket)._writableState.highWaterMark = Math.max(res.writableHighWaterMark, 1024 * 1024 * 16);
     res.socket.setNoDelay(true);
-
-    const userId = (req.ip || "unix") + ":" + (req.socket.remotePort || Date.now());
 
     service.getStream({
         id: userId,
@@ -101,4 +108,12 @@ get.apiDoc = {
             description: "Unexpected Error"
         }
     }
+};
+
+// HEAD request support
+export const head: Operation = (...args) => get(...args);
+
+head.apiDoc = {
+    ...get.apiDoc,
+    operationId: undefined
 };
