@@ -10,13 +10,12 @@ RUN apt-get update && \
     npm run build && \
     npm ci --omit=dev
 
-FROM ${ARCH}node:22.14.0-bookworm AS build
+FROM ${ARCH}node:22.14.0-bookworm AS recpt 
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     make gcc g++ pkg-config ca-certificates \
     build-essential libtool autoconf git automake cmake ca-certificates && \
-
     git clone https://github.com/stz2012/recpt1 /tmp/recpt1 && \
     cd /tmp/recpt1/recpt1 && \
     ./autogen.sh && \
